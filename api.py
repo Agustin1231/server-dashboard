@@ -34,6 +34,20 @@ def _read_temperature():
     except (AttributeError, OSError):
         pass
 
+    # Fallback: lm-sensors via subprocess
+    try:
+        import subprocess, json as _json
+        out = subprocess.check_output(["sensors", "-j"], timeout=3, stderr=subprocess.DEVNULL)
+        data = _json.loads(out)
+        for chip in data.values():
+            for feature in chip.values():
+                if isinstance(feature, dict):
+                    for k, v in feature.items():
+                        if "input" in k and isinstance(v, (int, float)):
+                            return round(float(v), 1)
+    except Exception:
+        pass
+
     # Fallback: read directly from sysfs (works in some Docker setups)
     import glob
     for path in sorted(glob.glob("/sys/class/thermal/thermal_zone*/temp")):
