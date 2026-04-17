@@ -114,7 +114,7 @@
   .bar > div {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), #7aa7ff);
-    transition: width 0.4s ease;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .bar.warn > div { background: linear-gradient(90deg, var(--warn), #fbbf24); }
   .bar.danger > div { background: linear-gradient(90deg, var(--danger), #fb7185); }
@@ -293,6 +293,24 @@
 <script>
   const REFRESH_MS = 10000;
 
+  const _numAnims = {};
+  function animateNum(id, to, decimals = 1, duration = 800) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const from = parseFloat(el.textContent) || 0;
+    if (Math.abs(to - from) < 0.05) { el.textContent = to.toFixed(decimals); return; }
+    if (_numAnims[id]) cancelAnimationFrame(_numAnims[id]);
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      el.textContent = (from + (to - from) * ease).toFixed(decimals);
+      if (t < 1) _numAnims[id] = requestAnimationFrame(step);
+      else el.textContent = to.toFixed(decimals);
+    }
+    _numAnims[id] = requestAnimationFrame(step);
+  }
+
   function fmtBytes(n) {
     if (n == null) return "—";
     const units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -333,19 +351,19 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       const d = await r.json();
 
-      document.getElementById("cpu-pct").textContent = d.cpu.percent.toFixed(1);
+      animateNum("cpu-pct", d.cpu.percent);
       document.getElementById("cpu-sub").textContent =
         `${d.cpu.count_physical ?? "?"} cores / ${d.cpu.count_logical} threads`;
       setBar("cpu-bar", d.cpu.percent);
       setBadge("cpu-badge", d.cpu.percent >= 80 ? "crit" : d.cpu.percent >= 60 ? "warn" : "ok");
 
-      document.getElementById("mem-pct").textContent = d.memory.percent.toFixed(1);
+      animateNum("mem-pct", d.memory.percent);
       document.getElementById("mem-sub").textContent =
         `${fmtBytes(d.memory.used)} / ${fmtBytes(d.memory.total)}`;
       setBar("mem-bar", d.memory.percent);
       setBadge("mem-badge", d.memory.percent >= 85 ? "crit" : d.memory.percent >= 70 ? "warn" : "ok");
 
-      document.getElementById("disk-pct").textContent = d.disk.percent.toFixed(1);
+      animateNum("disk-pct", d.disk.percent);
       document.getElementById("disk-sub").textContent =
         `${fmtBytes(d.disk.used)} / ${fmtBytes(d.disk.total)} · free ${fmtBytes(d.disk.free)}`;
       setBar("disk-bar", d.disk.percent);
@@ -370,7 +388,7 @@
       document.getElementById("net-rx").textContent = fmtBytes(d.network.bytes_recv);
       document.getElementById("net-tx").textContent = fmtBytes(d.network.bytes_sent);
 
-      document.getElementById("swap-pct").textContent = d.swap.percent.toFixed(1);
+      animateNum("swap-pct", d.swap.percent);
       document.getElementById("swap-sub").textContent =
         `${fmtBytes(d.swap.used)} / ${fmtBytes(d.swap.total)}`;
       setBar("swap-bar", d.swap.percent);
