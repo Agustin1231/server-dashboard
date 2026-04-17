@@ -57,6 +57,18 @@
   }
   .dot.stale { background: var(--warn); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); }
   .dot.err   { background: var(--danger); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge.ok   { background: rgba(34,197,94,0.15);  color: #22c55e; }
+  .badge.warn { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .badge.crit { background: rgba(239,68,68,0.15);  color: #ef4444; }
   main {
     padding: 24px 28px;
     max-width: 1400px;
@@ -205,25 +217,25 @@
 <main>
   <div class="grid">
     <div class="card">
-      <h2>CPU</h2>
+      <h2>CPU <span id="cpu-badge"></span></h2>
       <div class="value"><span id="cpu-pct">—</span>%</div>
       <div class="sub" id="cpu-sub">—</div>
       <div class="bar" id="cpu-bar"><div style="width:0%"></div></div>
     </div>
     <div class="card">
-      <h2>Memory</h2>
+      <h2>Memory <span id="mem-badge"></span></h2>
       <div class="value"><span id="mem-pct">—</span>%</div>
       <div class="sub" id="mem-sub">—</div>
       <div class="bar" id="mem-bar"><div style="width:0%"></div></div>
     </div>
     <div class="card">
-      <h2>Disk (/)</h2>
+      <h2>Disk (/) <span id="disk-badge"></span></h2>
       <div class="value"><span id="disk-pct">—</span>%</div>
       <div class="sub" id="disk-sub">—</div>
       <div class="bar" id="disk-bar"><div style="width:0%"></div></div>
     </div>
     <div class="card">
-      <h2>Temperature</h2>
+      <h2>Temperature <span id="temp-badge"></span></h2>
       <div class="value"><span id="temp">—</span></div>
       <div class="sub">sensor reading</div>
     </div>
@@ -233,7 +245,7 @@
       <div class="sub" id="boot">—</div>
     </div>
     <div class="card">
-      <h2>Load Average</h2>
+      <h2>Load Average <span id="loadavg-badge"></span></h2>
       <div class="value" style="font-size:22px" id="loadavg">—</div>
       <div class="sub">1m / 5m / 15m</div>
     </div>
@@ -243,7 +255,7 @@
       <div class="sub">↑ <span id="net-tx">—</span></div>
     </div>
     <div class="card">
-      <h2>Swap</h2>
+      <h2>Swap <span id="swap-badge"></span></h2>
       <div class="value"><span id="swap-pct">—</span>%</div>
       <div class="sub" id="swap-sub">—</div>
       <div class="bar" id="swap-bar"><div style="width:0%"></div></div>
@@ -299,6 +311,14 @@
     el.firstElementChild.style.width = Math.min(100, Math.max(0, pct)) + "%";
   }
 
+  function setBadge(id, level) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const labels = { ok: "Normal", warn: "Elevado", crit: "Crítico" };
+    el.className = "badge " + level;
+    el.textContent = labels[level] || level;
+  }
+
   function setStatus(state, text) {
     const dot = document.getElementById("status-dot");
     dot.classList.remove("stale", "err");
@@ -317,19 +337,25 @@
       document.getElementById("cpu-sub").textContent =
         `${d.cpu.count_physical ?? "?"} cores / ${d.cpu.count_logical} threads`;
       setBar("cpu-bar", d.cpu.percent);
+      setBadge("cpu-badge", d.cpu.percent >= 80 ? "crit" : d.cpu.percent >= 60 ? "warn" : "ok");
 
       document.getElementById("mem-pct").textContent = d.memory.percent.toFixed(1);
       document.getElementById("mem-sub").textContent =
         `${fmtBytes(d.memory.used)} / ${fmtBytes(d.memory.total)}`;
       setBar("mem-bar", d.memory.percent);
+      setBadge("mem-badge", d.memory.percent >= 85 ? "crit" : d.memory.percent >= 70 ? "warn" : "ok");
 
       document.getElementById("disk-pct").textContent = d.disk.percent.toFixed(1);
       document.getElementById("disk-sub").textContent =
         `${fmtBytes(d.disk.used)} / ${fmtBytes(d.disk.total)} · free ${fmtBytes(d.disk.free)}`;
       setBar("disk-bar", d.disk.percent);
+      setBadge("disk-badge", d.disk.percent >= 85 ? "crit" : d.disk.percent >= 70 ? "warn" : "ok");
 
       document.getElementById("temp").textContent =
         d.cpu.temperature_c != null ? `${d.cpu.temperature_c} °C` : "n/a";
+      if (d.cpu.temperature_c != null) {
+        setBadge("temp-badge", d.cpu.temperature_c >= 75 ? "crit" : d.cpu.temperature_c >= 60 ? "warn" : "ok");
+      }
 
       document.getElementById("uptime").textContent = d.uptime.human;
       const bootDate = new Date(d.uptime.boot_time);
@@ -338,6 +364,8 @@
 
       document.getElementById("loadavg").textContent =
         d.cpu.load_avg.map(x => x.toFixed(2)).join("  /  ");
+      { const la = d.cpu.load_avg[0], cores = d.cpu.count_logical;
+        setBadge("loadavg-badge", la >= cores ? "crit" : la >= cores * 0.5 ? "warn" : "ok"); }
 
       document.getElementById("net-rx").textContent = fmtBytes(d.network.bytes_recv);
       document.getElementById("net-tx").textContent = fmtBytes(d.network.bytes_sent);
@@ -346,16 +374,18 @@
       document.getElementById("swap-sub").textContent =
         `${fmtBytes(d.swap.used)} / ${fmtBytes(d.swap.total)}`;
       setBar("swap-bar", d.swap.percent);
+      setBadge("swap-badge", d.swap.percent >= 70 ? "crit" : d.swap.percent >= 30 ? "warn" : "ok");
 
       const cores = document.getElementById("cores");
       cores.innerHTML = "";
       d.cpu.per_core.forEach((pct, i) => {
+        const barClass = pct >= 90 ? "bar danger" : pct >= 75 ? "bar warn" : "bar";
         const div = document.createElement("div");
         div.className = "core";
         div.innerHTML = `
           <div class="label">core ${i}</div>
           <div class="pct">${pct.toFixed(0)}%</div>
-          <div class="bar"><div style="width:${pct}%"></div></div>`;
+          <div class="${barClass}"><div style="width:${pct}%"></div></div>`;
         cores.appendChild(div);
       });
 
