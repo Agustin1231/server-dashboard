@@ -357,7 +357,7 @@
         setBadge("temp-badge", d.cpu.temperature_c >= 75 ? "crit" : d.cpu.temperature_c >= 60 ? "warn" : "ok");
       }
 
-      document.getElementById("uptime").textContent = d.uptime.human;
+      window._uptimeBase = { seconds: d.uptime.seconds, ts: Date.now() };
       const bootDate = new Date(d.uptime.boot_time);
       const bootStr = bootDate.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
       document.getElementById("boot").textContent = "desde " + bootStr;
@@ -408,8 +408,27 @@
     }
   }
 
+  function fmtUptime(totalSeconds) {
+    const s = Math.floor(totalSeconds);
+    const days = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400) / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(mins).padStart(2, "0");
+    const ss = String(secs).padStart(2, "0");
+    return days > 0 ? `${days} ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
+  }
+
+  function tickUptime() {
+    if (!window._uptimeBase) return;
+    const elapsed = (Date.now() - window._uptimeBase.ts) / 1000;
+    document.getElementById("uptime").textContent = fmtUptime(window._uptimeBase.seconds + elapsed);
+  }
+
   refresh();
   setInterval(refresh, REFRESH_MS);
+  setInterval(tickUptime, 1000);
 </script>
 </body>
 </html>
