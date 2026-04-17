@@ -132,19 +132,19 @@
 
   .cores {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 16px;
     margin-top: 8px;
   }
   .core {
     background: var(--panel-2);
-    border-radius: 10px;
-    padding: 14px 16px;
-    font-size: 13px;
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-size: 14px;
   }
-  .core .label { color: var(--muted); font-size: 12px; }
-  .core .pct { font-weight: 700; font-size: 22px; margin: 4px 0; }
-  .core .bar { margin-top: 8px; height: 6px; }
+  .core .label { color: var(--muted); font-size: 13px; }
+  .core .pct { font-weight: 700; font-size: 32px; margin: 6px 0; }
+  .core .bar { margin-top: 10px; height: 8px; }
 
   footer {
     padding: 16px 28px;
