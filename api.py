@@ -1,11 +1,15 @@
 import time
+import httpx
 from datetime import datetime
 
 import psutil
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
+
+COOLIFY_TOKEN = "2|s3KYgWoU3UpUSechekEeKFDmicqCyYvZpvfyY1mK4565adb3"
+COOLIFY_APP_UUID = "t4eeyjzkozk5jw0bu6iggyhv"
 
 app = FastAPI(title="Server Dashboard API")
 
@@ -156,3 +160,19 @@ def stats():
         },
         "top_processes": top_processes,
     }
+
+
+@app.post("/webhook/github")
+async def github_webhook(request: Request):
+    """Receives GitHub push webhook and triggers Coolify deployment."""
+    payload = await request.json()
+    # Only deploy on pushes to main branch
+    if payload.get("ref") != "refs/heads/main":
+        return {"status": "ignored", "reason": "not main branch"}
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"https://coolify.agustinynatalia.site/api/v1/applications/{COOLIFY_APP_UUID}/start",
+            headers={"Authorization": f"Bearer {COOLIFY_TOKEN}"},
+            timeout=10,
+        )
+    return {"status": "triggered", "coolify_status": r.status_code}
