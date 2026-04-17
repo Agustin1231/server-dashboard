@@ -158,6 +158,40 @@
     border-radius: 4px;
     font-size: 12px;
   }
+
+  @media (max-width: 640px) {
+    header {
+      padding: 14px 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    header h1 { font-size: 17px; }
+    header .meta { font-size: 12px; gap: 10px; flex-wrap: wrap; }
+
+    main { padding: 14px 16px; }
+
+    .grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+    .card { padding: 14px 14px; }
+    .value { font-size: 26px; }
+
+    .cores {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px;
+    }
+    .core { padding: 14px 14px; }
+    .core .pct { font-size: 24px; }
+
+    table { font-size: 12px; }
+    th, td { padding: 6px 8px; }
+    .num-col-hide { display: none; }
+
+    footer { padding: 12px 16px; font-size: 11px; }
+
+    #uptime, #loadavg { font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #net-rx, #net-tx { font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -229,7 +263,7 @@
       <table>
         <thead>
           <tr>
-            <th class="num">PID</th>
+            <th class="num num-col-hide">PID</th>
             <th>Name</th>
             <th class="num">CPU %</th>
             <th class="num">MEM %</th>
@@ -298,7 +332,9 @@
         d.cpu.temperature_c != null ? `${d.cpu.temperature_c} °C` : "n/a";
 
       document.getElementById("uptime").textContent = d.uptime.human;
-      document.getElementById("boot").textContent = "since " + d.uptime.boot_time;
+      const bootDate = new Date(d.uptime.boot_time);
+      const bootStr = bootDate.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+      document.getElementById("boot").textContent = "desde " + bootStr;
 
       document.getElementById("loadavg").textContent =
         d.cpu.load_avg.map(x => x.toFixed(2)).join("  /  ");
@@ -328,7 +364,7 @@
       d.top_processes.forEach(p => {
         const tr = document.createElement("tr");
         tr.innerHTML =
-          `<td class="num">${p.pid}</td>` +
+          `<td class="num num-col-hide">${p.pid}</td>` +
           `<td>${p.name}</td>` +
           `<td class="num">${p.cpu.toFixed(1)}</td>` +
           `<td class="num">${p.mem.toFixed(1)}</td>`;
