@@ -21,18 +21,33 @@ BASE_DIR = Path(__file__).parent
 
 
 def _read_temperature():
+    # Try psutil first (works outside containers)
     try:
         temps = psutil.sensors_temperatures()
+        if temps:
+            for key in ("coretemp", "k10temp", "cpu_thermal", "acpitz"):
+                if key in temps and temps[key]:
+                    return round(temps[key][0].current, 1)
+            for entries in temps.values():
+                if entries:
+                    return round(entries[0].current, 1)
     except (AttributeError, OSError):
-        return None
-    if not temps:
-        return None
-    for key in ("coretemp", "k10temp", "cpu_thermal", "acpitz"):
-        if key in temps and temps[key]:
-            return round(temps[key][0].current, 1)
-    for entries in temps.values():
-        if entries:
-            return round(entries[0].current, 1)
+        pass
+
+    # Fallback: read directly from sysfs (works in some Docker setups)
+    import glob
+    for path in sorted(glob.glob("/sys/class/thermal/thermal_zone*/temp")):
+        try:
+            val = int(Path(path).read_text().strip())
+            return round(val / 1000.0, 1)
+        except (OSError, ValueError):
+            continue
+    for path in sorted(glob.glob("/sys/class/hwmon/hwmon*/temp1_input")):
+        try:
+            val = int(Path(path).read_text().strip())
+            return round(val / 1000.0, 1)
+        except (OSError, ValueError):
+            continue
     return None
 
 
