@@ -287,7 +287,7 @@
   </div>
 </main>
 <footer>
-  Auto-refresh every 10s · data from proyectin via <code>stats-api.agustinynatalia.site</code>
+  Auto-refresh every 10s · data from proyectin
 </footer>
 
 <script>
@@ -347,7 +347,7 @@
 
   async function refresh() {
     try {
-      const r = await fetch("https://stats-api.agustinynatalia.site/stats", { cache: "no-store" });
+      const r = await fetch("/stats", { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const d = await r.json();
 
