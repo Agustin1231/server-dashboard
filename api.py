@@ -1,3 +1,4 @@
+import os
 import time
 import httpx
 from datetime import datetime
@@ -8,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-COOLIFY_TOKEN = "2|s3KYgWoU3UpUSechekEeKFDmicqCyYvZpvfyY1mK4565adb3"
-COOLIFY_APP_UUID = "t4eeyjzkozk5jw0bu6iggyhv"
+COOLIFY_TOKEN = os.environ.get("COOLIFY_TOKEN", "")
+COOLIFY_APP_UUID = os.environ.get("COOLIFY_APP_UUID", "")
 
 app = FastAPI(title="Server Dashboard API")
 
@@ -169,6 +170,9 @@ async def github_webhook(request: Request):
     # Only deploy on pushes to main branch
     if payload.get("ref") != "refs/heads/main":
         return {"status": "ignored", "reason": "not main branch"}
+    if not COOLIFY_TOKEN or not COOLIFY_APP_UUID:
+        return {"status": "error", "reason": "Coolify credentials not configured"}
+    
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"https://coolify.agustinynatalia.site/api/v1/applications/{COOLIFY_APP_UUID}/start",
